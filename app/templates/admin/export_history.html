@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Export History{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Manual Test Excel Export History (All Users)</h1>
+  <table>
+    <thead>
+      <tr><th>Sl</th><th>Jira Id</th><th>Test Name (file)</th><th>Count</th><th>Created By</th><th>Created Date</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r["Sl_No"] }}</td>
+        <td>{{ r["Jira_id"] }}</td>
+        <td>{{ r["Test_name"] }}</td>
+        <td>{{ r["NoOfTest_Created"] }}</td>
+        <td>{{ r["Created_By"] }}</td>
+        <td>{{ r["Created_date"] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

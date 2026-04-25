@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>My Profile</h1>
+  <p><strong>Username:</strong> {{ current_user.username }}</p>
+  <form method="post" action="{{ url_for('main.profile') }}">
+    <label>Jira Personal Access Token (PAT)
+      <input type="password" name="jira_pat" value="{{ current_user.jira_pat or '' }}" autocomplete="off">
+    </label>
+    <button type="submit" class="primary">Save</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Edit User{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Edit User #{{ user["id"] }}</h1>
+  <form method="post">
+    <label>Username
+      <input type="text" name="username" value="{{ user['username'] }}" required>
+    </label>
+    <label>Jira PAT
+      <input type="password" name="jira_pat" value="{{ user['jira_pat'] or '' }}" autocomplete="off">
+    </label>
+    <label>New password (leave blank to keep current)
+      <input type="password" name="new_password" autocomplete="new-password">
+    </label>
+    <label class="inline">
+      <input type="checkbox" name="is_admin" {% if user["is_admin"] %}checked{% endif %}>
+      Administrator
+    </label>
+    <div class="row">
+      <button type="submit" class="primary">Save</button>
+      <a class="button" href="{{ url_for('admin.users') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

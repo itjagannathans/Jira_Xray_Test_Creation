@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Users</h1>
+  <table>
+    <thead>
+      <tr><th>Id</th><th>Username</th><th>Admin</th><th>Active</th><th>Created</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u["id"] }}</td>
+        <td>{{ u["username"] }}</td>
+        <td>{{ "Yes" if u["is_admin"] else "No" }}</td>
+        <td>{{ "Active" if u["is_active"] else "Deactivated" }}</td>
+        <td>{{ u["created_date"] }}</td>
+        <td class="actions">
+          {% if u["is_admin"] %}
+            <span class="muted">—</span>
+          {% else %}
+            <a class="button" href="{{ url_for('admin.edit_user', user_id=u['id']) }}">Edit</a>
+            <form method="post" action="{{ url_for('admin.toggle_active', user_id=u['id']) }}" style="display:inline">
+              <button type="submit">{{ "Deactivate" if u["is_active"] else "Activate" }}</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.delete_user', user_id=u['id']) }}" style="display:inline"
+                  onsubmit="return confirm('Delete user {{ u['username'] }}?');">
+              <button type="submit" class="danger">Delete</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Result{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Done - {{ story_key }}</h1>
+  <p>Created <strong>{{ created | length }}</strong> Xray Test(s).</p>
+  {% if created %}
+    <ul>
+      {% for k in created %}<li>{{ k }} - linked to {{ story_key }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if errors %}
+    <h2>Errors</h2>
+    <ul class="errors">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if excel_filename %}
+    <p>Excel exported: <code>{{ excel_filename }}</code></p>
+  {% endif %}
+
+  <p><a class="button" href="{{ url_for('main.landing') }}">Back to Home</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Admin Dashboard</h1>
+  <div class="stats">
+    <div class="stat"><span class="num">{{ users | length }}</span><span>Users</span></div>
+    <div class="stat"><span class="num">{{ xray_count }}</span><span>Xray Tests Created</span></div>
+    <div class="stat"><span class="num">{{ export_count }}</span><span>Excel Exports</span></div>
+  </div>
+  <div class="row">
+    <a class="button primary" href="{{ url_for('admin.users') }}">Manage Users</a>
+    <a class="button" href="{{ url_for('admin.xray_history') }}">Xray Creation History</a>
+    <a class="button" href="{{ url_for('admin.export_history') }}">Manual Test Export History</a>
+    <a class="button" href="{{ url_for('admin.export_activity') }}">Export All Activity (Excel)</a>
+  </div>
+</div>
+{% endblock %}

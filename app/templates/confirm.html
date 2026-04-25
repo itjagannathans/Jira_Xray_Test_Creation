@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Confirm Test Cases{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Generated Test Cases for {{ story_key }}</h1>
+  <p>Action: <strong>{% if action == 'excel' %}Generate Excel{% else %}Create Xray Tests in Jira{% endif %}</strong></p>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Title</th><th>Priority</th><th>Type</th><th>Steps</th></tr>
+    </thead>
+    <tbody>
+      {% for tc in testcases %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ tc.Title }}</td>
+          <td>{{ tc.Priority }}</td>
+          <td>{{ tc.Type }}</td>
+          <td>{{ (tc.Steps or []) | length }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" action="{{ url_for('main.confirm') }}" class="row">
+    <button type="submit" name="decision" value="yes" class="primary">Confirm</button>
+    <button type="submit" name="decision" value="cancel">Cancel</button>
+  </form>
+
+  <hr>
+  <details>
+    <summary>Regenerate with a custom prompt</summary>
+    <form method="post" action="{{ url_for('main.confirm') }}">
+      <label>Custom prompt
+        <textarea name="custom_prompt" rows="6" required></textarea>
+      </label>
+      <button type="submit" name="decision" value="regenerate" class="primary">Regenerate</button>
+    </form>
+  </details>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Xray History{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Xray Test Creation History (All Users)</h1>
+  <table>
+    <thead>
+      <tr><th>SL</th><th>Jira Id</th><th>Test Id</th><th>Description</th><th>Steps</th><th>Expected</th><th>Created By</th><th>Created Date</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r["SL_No"] }}</td>
+        <td>{{ r["Jira_id"] }}</td>
+        <td>{{ r["Test_id"] }}</td>
+        <td>{{ r["Test_Description"] }}</td>
+        <td><pre class="cell-pre">{{ r["Test_Steps"] }}</pre></td>
+        <td><pre class="cell-pre">{{ r["Test_expected"] }}</pre></td>
+        <td>{{ r["Created_By"] }}</td>
+        <td>{{ r["Created_date"] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Jira Xray Test Generator{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="{{ url_for('main.root') }}">Jira Xray Test Generator</a>
+    </div>
+    <nav>
+      {% if current_user.is_authenticated %}
+        <span class="user">Hello, <strong>{{ current_user.username }}</strong>{% if current_user.is_admin %} (Admin){% endif %}</span>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('admin.users') }}">Users</a>
+          <a href="{{ url_for('admin.xray_history') }}">Xray History</a>
+          <a href="{{ url_for('admin.export_history') }}">Export History</a>
+        {% else %}
+          <a href="{{ url_for('main.landing') }}">Home</a>
+          <a href="{{ url_for('main.profile') }}">Profile</a>
+        {% endif %}
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

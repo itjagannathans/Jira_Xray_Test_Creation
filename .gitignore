@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# App data / generated files
+app_data.db
+exports/
+*.xlsx
+~$*.xlsx
+copilot_raw_output.txt
+created_tests.json
+created_tests.txt
+issue.json
+xray_meta_debug.json
+xray_test_generator.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store

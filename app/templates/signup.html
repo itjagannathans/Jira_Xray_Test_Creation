@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Create Account</h1>
+  <form method="post" action="{{ url_for('auth.signup') }}">
+    <label>Enter Username (must end with <code>@brightstarlottery.com</code>)
+      <input type="email" name="username" value="{{ username }}" required>
+    </label>
+    <label>Enter Password (minimum 8 characters)
+      <input type="password" name="password" minlength="8" required>
+    </label>
+    <label>Accept Password
+      <input type="password" name="confirm_password" minlength="8" required>
+    </label>
+    <label>Jira PAT (optional, can be set later)
+      <input type="password" name="jira_pat" autocomplete="off">
+    </label>
+    <div class="row">
+      <button type="submit" class="primary">Sign Up</button>
+      <a class="button" href="{{ url_for('auth.login') }}">Back to Login</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

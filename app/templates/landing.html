@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Generate Test Cases for a Jira Story</h1>
+  {% if not has_pat %}
+    <p class="warn">You have not set your Jira PAT yet.
+      <a href="{{ url_for('main.profile') }}">Set it in your profile</a> before generating.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('main.generate') }}">
+    <label>Jira Story Key
+      <input type="text" name="story_key" placeholder="e.g. ILREP-869" required>
+    </label>
+    <label>Custom prompt (optional)
+      <textarea name="custom_prompt" rows="4" placeholder="Leave blank to use the default prompt"></textarea>
+    </label>
+    <fieldset>
+      <legend>Action</legend>
+      <label class="inline">
+        <input type="radio" name="action" value="excel" checked>
+        Generate Manual Test Cases as Excel
+      </label>
+      <label class="inline">
+        <input type="radio" name="action" value="jira">
+        Create Manual Test &amp; Add Xray Tests to Jira Story
+      </label>
+    </fieldset>
+    <button type="submit" class="primary">Generate</button>
+  </form>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Your Jira / Xray Tests Created</h2>
+    {% if xray_rows %}
+    <table>
+      <thead><tr><th>SL</th><th>Jira Id</th><th>Test Id</th><th>Description</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for r in xray_rows %}
+          <tr>
+            <td>{{ r["SL_No"] }}</td>
+            <td>{{ r["Jira_id"] }}</td>
+            <td>{{ r["Test_id"] }}</td>
+            <td>{{ r["Test_Description"] }}</td>
+            <td>{{ r["Created_date"] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="muted">No Xray tests created yet.</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Your Manual Test Excel Exports</h2>
+    {% if export_rows %}
+    <table>
+      <thead><tr><th>Sl</th><th>Jira Id</th><th>File</th><th>Count</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for r in export_rows %}
+          <tr>
+            <td>{{ r["Sl_No"] }}</td>
+            <td>{{ r["Jira_id"] }}</td>
+            <td>{{ r["Test_name"] }}</td>
+            <td>{{ r["NoOfTest_Created"] }}</td>
+            <td>{{ r["Created_date"] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="muted">No manual test exports yet.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
