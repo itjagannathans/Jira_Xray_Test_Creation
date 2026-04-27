@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Imported Tests by Site{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Imported Tests for {{ site_name }}</h1>
+  <div class="row" style="margin-bottom:10px;">
+    <a class="button" href="{{ url_for('main.landing') }}">Back</a>
+  </div>
+
+  {% if rows %}
+  <div class="scroll-table">
+    <table>
+      <thead>
+        <tr><th>SL No</th><th>Jira Id</th><th>Site Name</th><th>Test Id</th><th>Description</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ r["Jira_id"] }}</td>
+          <td>{{ r["Site_Name"] or "Unknown" }}</td>
+          <td>{{ r["Test_id"] }}</td>
+          <td>{{ r["Test_Description"] }}</td>
+          <td>{{ r["Created_date"] | dt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No imported tests found for this site.</p>
+  {% endif %}
+</div>
+{% endblock %}

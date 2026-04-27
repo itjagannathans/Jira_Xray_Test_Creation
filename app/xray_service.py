@@ -10,12 +10,15 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 from datetime import datetime
 from typing import Optional
 
 import requests
 from openpyxl import Workbook
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 # -------------------------
@@ -25,8 +28,14 @@ JIRA_DOMAIN = os.environ.get("JIRA_DOMAIN", "https://jira.g2-networks.net").stri
 XRAY_SAMPLE_TEST_KEY = os.environ.get("XRAY_SAMPLE_TEST_KEY", "ILREP-880").strip()
 XRAY_STEP_FIELD_FALLBACK = os.environ.get("XRAY_STEP_FIELD_FALLBACK", "customfield_10004").strip()
 JIRA_LINK_TYPE_NAME = os.environ.get("JIRA_LINK_TYPE_NAME", "Tests").strip()
+JIRA_HTTP_TIMEOUT = int(os.environ.get("JIRA_HTTP_TIMEOUT", "60"))
+JIRA_RETRY_TOTAL = int(os.environ.get("JIRA_RETRY_TOTAL", "3"))
+JIRA_RETRY_BACKOFF = float(os.environ.get("JIRA_RETRY_BACKOFF", "0.8"))
+JIRA_VERIFY_SSL = os.environ.get("JIRA_VERIFY_SSL", "true").strip().lower()
+JIRA_CA_BUNDLE = os.environ.get("JIRA_CA_BUNDLE", "").strip()
 
 logger = logging.getLogger(__name__)
+_HTTP_SESSION: Optional[requests.Session] = None
 
 
 # -------------------------
@@ -40,21 +49,68 @@ def _headers(jira_pat: str, include_content_type: bool = True) -> dict:
     return h
 
 
+def _verify_setting():
+    if JIRA_CA_BUNDLE:
+        return JIRA_CA_BUNDLE
+    return JIRA_VERIFY_SSL not in ("0", "false", "no", "off")
+
+
+def _http_session() -> requests.Session:
+    global _HTTP_SESSION
+    if _HTTP_SESSION is not None:
+        return _HTTP_SESSION
+
+    retry = Retry(
+        total=JIRA_RETRY_TOTAL,
+        connect=JIRA_RETRY_TOTAL,
+        read=JIRA_RETRY_TOTAL,
+        backoff_factor=JIRA_RETRY_BACKOFF,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET", "POST", "PUT"),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    s = requests.Session()
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
+    _HTTP_SESSION = s
+    return s
+
+
+def _request(method: str, jira_pat: str, path: str, *, params=None, payload: Optional[dict] = None):
+    url = f"{JIRA_DOMAIN}{path}"
+    try:
+        return _http_session().request(
+            method=method,
+            url=url,
+            headers=_headers(jira_pat, include_content_type=(payload is not None)),
+            params=params,
+            json=payload,
+            timeout=JIRA_HTTP_TIMEOUT,
+            verify=_verify_setting(),
+        )
+    except requests.exceptions.SSLError as e:
+        raise RuntimeError(
+            "Jira SSL handshake failed. If your environment uses corporate TLS inspection, "
+            "set JIRA_CA_BUNDLE to your trusted PEM bundle (preferred), or set "
+            "JIRA_VERIFY_SSL=false only for local testing."
+        ) from e
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Jira request failed: {e}") from e
+
+
 def jira_get(jira_pat: str, path: str, params=None):
-    r = requests.get(f"{JIRA_DOMAIN}{path}", headers=_headers(jira_pat, False),
-                     params=params, timeout=60)
+    r = _request("GET", jira_pat, path, params=params)
     r.raise_for_status()
     return r.json()
 
 
 def jira_post(jira_pat: str, path: str, payload: dict):
-    return requests.post(f"{JIRA_DOMAIN}{path}", headers=_headers(jira_pat, True),
-                         json=payload, timeout=60)
+    return _request("POST", jira_pat, path, payload=payload)
 
 
 def jira_put(jira_pat: str, path: str, payload: dict):
-    return requests.put(f"{JIRA_DOMAIN}{path}", headers=_headers(jira_pat, True),
-                        json=payload, timeout=60)
+    return _request("PUT", jira_pat, path, payload=payload)
 
 
 def get_issue_fields(jira_pat: str, issue_key: str, fields: str):
@@ -125,12 +181,27 @@ def _normalize_prompt(prompt: str) -> str:
         "- Each testcase object must include: Title, Preconditions, TestData, Steps, Priority, Type.\n"
         "- Steps must be an array of objects containing: Step, Action, Expected."
     )
+    flow_rules = (
+        "Execution flow rules (mandatory):\n"
+        "- For every testcase, Steps must be self-contained and start from the beginning of the app flow.\n"
+        "- The first step must open the application and navigate to the Home page (or Login page when auth is required).\n"
+        "- Include all required setup/navigation/user actions inside Steps. Do NOT rely on Preconditions for executable steps.\n"
+        "- Preconditions must not contain the main user actions to execute the testcase."
+    )
     base = (prompt or "").strip()
-    if not base:
-        return rules
-    if "Output ONLY a JSON array" in base or "Return ONLY a valid JSON array" in base:
-        return base
-    return f"{base}\n\n{rules}"
+    base_lower = base.lower()
+
+    parts = []
+    if base:
+        parts.append(base)
+
+    if "return only a valid json array" not in base_lower:
+        parts.append(rules)
+
+    if "execution flow rules (mandatory):" not in base_lower:
+        parts.append(flow_rules)
+
+    return "\n\n".join(parts).strip()
 
 
 def build_generation_prompt(prompt: str, story_context: Optional[dict] = None) -> str:
@@ -140,6 +211,79 @@ def build_generation_prompt(prompt: str, story_context: Optional[dict] = None) -
     ctx = json.dumps(story_context, ensure_ascii=False, indent=2)
     return ("Use the following Jira story context to generate manual test cases.\n\n"
             f"Story Context:\n{ctx}\n\nTask:\n{prepared}")
+
+
+def _normalize_step_item(step: object) -> dict:
+    """Normalize a generated step into {Step, Action, Expected}."""
+    if isinstance(step, dict):
+        step_no = step.get("Step")
+        action = (step.get("Action") or step.get("action") or "").strip()
+        expected = (
+            step.get("Expected")
+            or step.get("expected")
+            or step.get("Expected Result")
+            or step.get("expected result")
+            or ""
+        )
+        expected = str(expected).strip()
+        try:
+            step_no = int(step_no)
+        except Exception:
+            step_no = 0
+        return {"Step": step_no, "Action": action, "Expected": expected}
+
+    text = str(step or "").strip()
+    if "->" in text:
+        action, expected = text.split("->", 1)
+        return {"Step": 0, "Action": action.strip(), "Expected": expected.strip()}
+    return {"Step": 0, "Action": text, "Expected": ""}
+
+
+def _enforce_start_from_beginning(testcases: list) -> list:
+    """Ensure every testcase has self-contained app-entry and navigation steps."""
+    startup_steps = [
+        {
+            "Action": "Open the application in a browser.",
+            "Expected": "Application is launched successfully.",
+        },
+        {
+            "Action": "Navigate to the Home page (log in first if prompted).",
+            "Expected": "Home page is displayed and the user can start the flow.",
+        },
+    ]
+    # Only skip prepending if step 1 already starts with the exact phrase we insert,
+    # so we never get false positives from words like "home page" appearing mid-step.
+    _open_marker = "open the application"
+    _nav_marker = "navigate to the home page"
+
+    normalized_cases = []
+    for tc in testcases or []:
+        case = dict(tc or {})
+        existing_steps = [_normalize_step_item(s) for s in (case.get("Steps") or [])]
+
+        first_action = (existing_steps[0].get("Action") or "").lower().strip() if existing_steps else ""
+        has_startup = first_action.startswith(_open_marker) or first_action.startswith(_nav_marker)
+
+        merged = []
+        if not has_startup:
+            for step in startup_steps:
+                merged.append({"Step": 0, "Action": step["Action"], "Expected": step["Expected"]})
+        merged.extend(existing_steps)
+
+        final_steps = []
+        for idx, step in enumerate(merged, start=1):
+            final_steps.append(
+                {
+                    "Step": idx,
+                    "Action": (step.get("Action") or "").strip(),
+                    "Expected": (step.get("Expected") or "").strip(),
+                }
+            )
+
+        case["Steps"] = final_steps
+        normalized_cases.append(case)
+
+    return normalized_cases
 
 
 DEFAULT_PROMPT = """
@@ -162,6 +306,8 @@ Output ONLY a JSON array like this:
 Rules:
 - Minimum 10 test cases
 - Include negative & boundary cases
+- For each testcase, Steps must start from app launch and navigation to Home/Login page.
+- Include end-to-end user actions in Steps; do not rely on Preconditions for execution flow.
 - No markdown
 - No explanations
 - Output JSON ONLY
@@ -184,7 +330,7 @@ def generate_testcases(prompt: str, story_context: Optional[dict] = None) -> lis
     output = (result.stdout or "").strip()
     if not output:
         raise RuntimeError("Copilot returned empty output")
-    return extract_json_array(output)
+    return _enforce_start_from_beginning(extract_json_array(output))
 
 
 # -------------------------
@@ -315,11 +461,24 @@ def _copy_required_fields_from_sample(jira_pat: str, base_fields: dict) -> None:
 # Build payloads
 # -------------------------
 
+def _clean_summary(raw: str, story_key: str) -> str:
+    """Strip story key / TC### prefixes and ensure summary starts with 'Verify'."""
+    s = (raw or "").strip()
+    # Strip leading story key (e.g., "ILREP-782 - ", "ILREP-782_TC001 - ", "ILREP-782:")
+    s = re.sub(rf"^\s*{re.escape(story_key)}[\s_:\-]+", "", s, flags=re.IGNORECASE)
+    # Strip leading test-id token (e.g., "TC001 - ", "TC_01: ")
+    s = re.sub(r"^\s*TC[_\-]?\d+[\s_:\-]+", "", s, flags=re.IGNORECASE)
+    # Strip leading "Verify the " / "Verify " so we can normalize
+    s = re.sub(r"^\s*verify(\s+the)?\s+", "", s, flags=re.IGNORECASE).strip()
+    if not s:
+        s = f"scenario for {story_key}"
+    # Capitalize first letter without altering rest
+    s = s[0].upper() + s[1:] if s else s
+    return f"Verify {s}"
+
+
 def build_description(story_key: str, tc: dict) -> str:
-    title = (tc.get("Title") or "").strip()
-    if title:
-        return f"Verify the {title}"
-    return f"Verify the scenario for {story_key}"
+    return _clean_summary(tc.get("Title") or "", story_key)
 
 
 def build_steps_payload(tc: dict) -> dict:
@@ -395,9 +554,7 @@ def create_xray_test(
     test_type_payload: Optional[dict],
     tc: dict,
 ) -> str:
-    summary = (tc.get("Title") or f"Manual Test - {story_key}").strip()
-    if story_key not in summary:
-        summary = f"{story_key} - {summary}".strip()
+    summary = _clean_summary(tc.get("Title") or "", story_key)
 
     base_fields = {
         "project": {"key": project_key},

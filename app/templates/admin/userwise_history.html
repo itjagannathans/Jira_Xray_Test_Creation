@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}User Wise Export{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <h1 style="margin:0">User Wise Export</h1>
+    <div class="row">
+      <a class="button primary"
+         href="{{ url_for('admin.userwise_history_export') }}"
+         onclick="return confirm('Export User Wise Export as an Excel file?');">
+        Export to Excel
+      </a>
+      <a class="button" href="{{ url_for('admin.dashboard') }}">Back</a>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Sl No</th>
+        <th>User Name</th>
+        <th>Last Activity Date</th>
+        <th>No of Stories - Excel</th>
+        <th>No of Test Generated - Excel</th>
+        <th>No of Stories - Xray</th>
+        <th>No of Test Generated - Xray</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.sl_no }}</td>
+        <td title="{{ r.username }}">{{ r.display_name }}</td>
+        <td>{{ r.last_activity }}</td>
+        <td>{{ r.excel_stories }}</td>
+        <td>{{ r.excel_tests }}</td>
+        <td>{{ r.xray_stories }}</td>
+        <td>{{ r.xray_tests }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No activity yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+{% endblock %}

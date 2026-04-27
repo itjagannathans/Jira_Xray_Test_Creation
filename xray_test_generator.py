@@ -144,14 +144,28 @@ Output format rules (mandatory):
 - Steps must be an array of objects containing: Step, Action, Expected.
 """.strip()
 
+    flow_rules = """
+Execution flow rules (mandatory):
+- For every testcase, Steps must be self-contained and start from the beginning of the app flow.
+- The first step must open the application and navigate to the Home page (or Login page when auth is required).
+- Include all required setup/navigation/user actions inside Steps. Do NOT rely on Preconditions for executable steps.
+- Preconditions must not contain the main user actions to execute the testcase.
+""".strip()
+
     base = (prompt or "").strip()
-    if not base:
-        return strict_rules
+    base_lower = base.lower()
 
-    if "Output ONLY a JSON array" in base or "Return ONLY a valid JSON array" in base:
-        return base
+    parts = []
+    if base:
+        parts.append(base)
 
-    return f"{base}\n\n{strict_rules}"
+    if "return only a valid json array" not in base_lower:
+        parts.append(strict_rules)
+
+    if "execution flow rules (mandatory):" not in base_lower:
+        parts.append(flow_rules)
+
+    return "\n\n".join(parts).strip()
 
 
 def build_generation_prompt(prompt: str, story_context: dict | None = None) -> str:
@@ -166,6 +180,79 @@ def build_generation_prompt(prompt: str, story_context: dict | None = None) -> s
         f"Story Context:\n{context_json}\n\n"
         f"Task:\n{prepared_prompt}"
     )
+
+
+def normalize_step_item(step: object) -> dict:
+    """Normalize a generated step into {Step, Action, Expected}."""
+    if isinstance(step, dict):
+        step_no = step.get("Step")
+        action = (step.get("Action") or step.get("action") or "").strip()
+        expected = (
+            step.get("Expected")
+            or step.get("expected")
+            or step.get("Expected Result")
+            or step.get("expected result")
+            or ""
+        )
+        expected = str(expected).strip()
+        try:
+            step_no = int(step_no)
+        except Exception:
+            step_no = 0
+        return {"Step": step_no, "Action": action, "Expected": expected}
+
+    text = str(step or "").strip()
+    if "->" in text:
+        action, expected = text.split("->", 1)
+        return {"Step": 0, "Action": action.strip(), "Expected": expected.strip()}
+    return {"Step": 0, "Action": text, "Expected": ""}
+
+
+def enforce_start_from_beginning(testcases: list) -> list:
+    """Ensure every testcase has self-contained app-entry and navigation steps."""
+    startup_steps = [
+        {
+            "Action": "Open the application in a browser.",
+            "Expected": "Application is launched successfully.",
+        },
+        {
+            "Action": "Navigate to the Home page (log in first if prompted).",
+            "Expected": "Home page is displayed and the user can start the flow.",
+        },
+    ]
+    # Only skip prepending if step 1 already starts with the exact phrase we insert,
+    # so we never get false positives from words like "home page" appearing mid-step.
+    _open_marker = "open the application"
+    _nav_marker = "navigate to the home page"
+
+    normalized_cases = []
+    for tc in testcases or []:
+        case = dict(tc or {})
+        existing_steps = [normalize_step_item(s) for s in (case.get("Steps") or [])]
+
+        first_action = (existing_steps[0].get("Action") or "").lower().strip() if existing_steps else ""
+        has_startup = first_action.startswith(_open_marker) or first_action.startswith(_nav_marker)
+
+        merged = []
+        if not has_startup:
+            for step in startup_steps:
+                merged.append({"Step": 0, "Action": step["Action"], "Expected": step["Expected"]})
+        merged.extend(existing_steps)
+
+        final_steps = []
+        for idx, step in enumerate(merged, start=1):
+            final_steps.append(
+                {
+                    "Step": idx,
+                    "Action": (step.get("Action") or "").strip(),
+                    "Expected": (step.get("Expected") or "").strip(),
+                }
+            )
+
+        case["Steps"] = final_steps
+        normalized_cases.append(case)
+
+    return normalized_cases
 
 
 # -------------------------
@@ -912,7 +999,7 @@ def generate_testcases(prompt: str, story_context: dict | None = None) -> list:
     with open(COPILOT_RAW_FILE, "w", encoding="utf-8") as f:
         f.write(copilot_output)
 
-    return extract_json_array(copilot_output)
+    return enforce_start_from_beginning(extract_json_array(copilot_output))
 
 
 # -------------------------

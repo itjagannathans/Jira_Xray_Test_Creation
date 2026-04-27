@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Export Details{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Manual Test Export Details</h1>
+  <div class="row" style="justify-content:flex-end; margin-top:-6px; margin-bottom:6px;">
+    <a class="button" href="{{ url_for('main.landing') }}">Back</a>
+  </div>
+  <p class="muted">
+    <strong>Jira Id:</strong> {{ export["Jira_id"] }} &nbsp;|&nbsp;
+    <strong>File:</strong> {{ export["Test_name"] }} &nbsp;|&nbsp;
+    <strong>Tests:</strong> {{ export["NoOfTest_Created"] }} &nbsp;|&nbsp;
+    <strong>Created:</strong> {{ export["Created_date"] | dt }}
+  </p>
+
+  {% if error %}
+    <p class="warn">{{ error }}</p>
+  {% elif rows %}
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            {% for c in r %}
+              <td><div class="clamp-2" title="{{ c }}">{{ c }}</div></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">No data found in the file.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

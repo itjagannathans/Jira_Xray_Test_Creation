@@ -1,8 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Export History{% endblock %}
+{% block title %}Export Excel Report{% endblock %}
 {% block content %}
 <div class="card">
-  <h1>Manual Test Excel Export History (All Users)</h1>
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <h1 style="margin:0">Export Excel Report (All Users)</h1>
+    <a class="button" href="{{ url_for('admin.dashboard') }}">Back</a>
+  </div>
   <table>
     <thead>
       <tr><th>Sl</th><th>Jira Id</th><th>Test Name (file)</th><th>Count</th><th>Created By</th><th>Created Date</th></tr>
@@ -12,10 +15,10 @@
       <tr>
         <td>{{ r["Sl_No"] }}</td>
         <td>{{ r["Jira_id"] }}</td>
-        <td>{{ r["Test_name"] }}</td>
+        <td><a href="{{ url_for('admin.export_history_detail', sl_no=r['Sl_No']) }}">{{ r["Test_name"] }}</a></td>
         <td>{{ r["NoOfTest_Created"] }}</td>
-        <td>{{ r["Created_By"] }}</td>
-        <td>{{ r["Created_date"] }}</td>
+        <td title="{{ r['Created_By'] }}">{{ name_map.get(r['Created_By'], r['Created_By']) }}</td>
+        <td>{{ r["Created_date"] | dt }}</td>
       </tr>
       {% endfor %}
     </tbody>

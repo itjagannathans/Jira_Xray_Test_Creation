@@ -2,17 +2,17 @@
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
 <div class="card">
-  <h1>Admin Dashboard</h1>
-  <div class="stats">
+  <h1 style="text-align:center; margin-bottom:16px;">Admin Dashboard</h1>
+  <div class="stats" style="justify-content:center; margin-bottom:24px;">
     <div class="stat"><span class="num">{{ users | length }}</span><span>Users</span></div>
     <div class="stat"><span class="num">{{ xray_count }}</span><span>Xray Tests Created</span></div>
     <div class="stat"><span class="num">{{ export_count }}</span><span>Excel Exports</span></div>
   </div>
-  <div class="row">
-    <a class="button primary" href="{{ url_for('admin.users') }}">Manage Users</a>
-    <a class="button" href="{{ url_for('admin.xray_history') }}">Xray Creation History</a>
-    <a class="button" href="{{ url_for('admin.export_history') }}">Manual Test Export History</a>
-    <a class="button" href="{{ url_for('admin.export_activity') }}">Export All Activity (Excel)</a>
+  <div class="row" style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap; width:100%;">
+    <a class="button primary" style="min-width:240px; text-align:center;" href="{{ url_for('admin.xray_history') }}">Jira Tests Report</a>
+    <a class="button primary" style="min-width:240px; text-align:center;" href="{{ url_for('admin.export_history') }}">Export Excel Report</a>
+    <a class="button primary" style="min-width:240px; text-align:center;" href="{{ url_for('admin.userwise_history') }}">User Wise Export</a>
+    <a class="button primary" style="min-width:240px; text-align:center;" href="{{ url_for('admin.sitewise_report') }}">SiteWise Report</a>
   </div>
 </div>
 {% endblock %}

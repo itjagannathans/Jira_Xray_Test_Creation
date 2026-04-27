@@ -2,12 +2,12 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <div class="card">
-  <h1>Generate Test Cases for a Jira Story</h1>
+  <h1>AI Test Case Designer &amp; Jira Importer</h1>
   {% if not has_pat %}
     <p class="warn">You have not set your Jira PAT yet.
       <a href="{{ url_for('main.profile') }}">Set it in your profile</a> before generating.</p>
   {% endif %}
-  <form method="post" action="{{ url_for('main.generate') }}">
+  <form method="post" action="{{ url_for('main.generate') }}" id="generate-form">
     <label>Jira Story Key
       <input type="text" name="story_key" placeholder="e.g. ILREP-869" required>
     </label>
@@ -18,56 +18,240 @@
       <legend>Action</legend>
       <label class="inline">
         <input type="radio" name="action" value="excel" checked>
-        Generate Manual Test Cases as Excel
+        Export as Excel
       </label>
       <label class="inline">
         <input type="radio" name="action" value="jira">
-        Create Manual Test &amp; Add Xray Tests to Jira Story
+        Import Tests to Jira
       </label>
     </fieldset>
-    <button type="submit" class="primary">Generate</button>
+    <div class="row">
+      <button type="submit" class="primary" id="generate-btn">Build</button>
+      <button type="button" class="danger" id="cancel-btn" style="display:none">Cancel</button>
+      <span id="generate-progress" class="muted" style="display:none">
+        <span class="spinner" aria-hidden="true"></span>
+        Manual Test Cases generation is inprogress...
+        <span id="generate-timer" style="margin-left:8px; font-weight:600;"></span>
+      </span>
+    </div>
   </form>
 </div>
 
+<script>
+  (function () {
+    var form      = document.getElementById("generate-form");
+    var genBtn    = document.getElementById("generate-btn");
+    var cancelBtn = document.getElementById("cancel-btn");
+    var progress  = document.getElementById("generate-progress");
+    var timerEl   = document.getElementById("generate-timer");
+    var storyKeyInput = form ? form.querySelector('input[name="story_key"]') : null;
+    var customPromptInput = form ? form.querySelector('textarea[name="custom_prompt"]') : null;
+    var actionFieldset = form ? form.querySelector("fieldset") : null;
+    var actionInputs = form ? form.querySelectorAll('input[name="action"]') : [];
+    var isGenerating  = false;
+    var formSubmitting = false;  /* true only during the intentional form POST */
+    var timerHandle = null;
+    var startedAt = null;
+
+    function setGenerationInputsLocked(locked) {
+      if (storyKeyInput) {
+        storyKeyInput.readOnly = locked;
+      }
+      if (customPromptInput) {
+        customPromptInput.readOnly = locked;
+      }
+      if (actionFieldset) {
+        actionFieldset.style.pointerEvents = locked ? "none" : "";
+        actionFieldset.style.opacity = locked ? "0.75" : "";
+      }
+      actionInputs.forEach(function (el) {
+        el.tabIndex = locked ? -1 : 0;
+      });
+    }
+
+    function formatElapsed(ms) {
+      var totalSeconds = Math.floor(ms / 1000);
+      var minutes = Math.floor(totalSeconds / 60);
+      var seconds = totalSeconds % 60;
+      var mm = String(minutes).padStart(2, "0");
+      var ss = String(seconds).padStart(2, "0");
+      return mm + ":" + ss;
+    }
+
+    /* ---------- helpers ---------- */
+    function startGenerating() {
+      isGenerating = true;
+      setGenerationInputsLocked(true);
+
+      startedAt = Date.now();
+      if (timerEl) {
+        timerEl.textContent = "Time elapsed: 00:00";
+      }
+      if (timerHandle) {
+        clearInterval(timerHandle);
+      }
+      timerHandle = setInterval(function () {
+        if (!timerEl || !startedAt) return;
+        timerEl.textContent = "Time elapsed: " + formatElapsed(Date.now() - startedAt);
+      }, 1000);
+
+      if (genBtn)    { genBtn.disabled = true; genBtn.textContent = "Building..."; }
+      if (cancelBtn) { cancelBtn.style.display = "inline-block"; }
+      if (progress)  { progress.style.display = "inline-flex"; }
+    }
+
+    function stopGenerating() {
+      isGenerating = false;
+      setGenerationInputsLocked(false);
+      formSubmitting = false;
+
+      if (timerHandle) {
+        clearInterval(timerHandle);
+        timerHandle = null;
+      }
+      startedAt = null;
+      if (timerEl) {
+        timerEl.textContent = "";
+      }
+
+      if (genBtn)    { genBtn.disabled = false; genBtn.textContent = "Build"; }
+      if (cancelBtn) { cancelBtn.style.display = "none"; }
+      if (progress)  { progress.style.display = "none"; }
+    }
+
+    /* ---------- form submit ---------- */
+    if (form) {
+      form.addEventListener("submit", function () {
+        formSubmitting = true;  /* suppress beforeunload for this navigation */
+        startGenerating();
+      });
+    }
+
+    /* ---------- Cancel button ---------- */
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function () {
+        if (confirm("Are you sure you want to cancel the generation process?")) {
+          stopGenerating();
+          /* Stop waiting for the server response and stay on the page */
+          if (form) form.reset();
+          /* Navigate away to reload landing cleanly */
+          window.location.href = window.location.pathname;
+        }
+      });
+    }
+
+    /* ---------- Nav-link guard ---------- */
+    function guardedNavigate(href) {
+      if (!isGenerating) { window.location.href = href; return; }
+      if (confirm("Do you want to Cancel the Process?\n\nClick OK to leave this page, or Cancel to continue generating.")) {
+        stopGenerating();
+        window.location.href = href;
+      }
+      /* else: do nothing, generation continues */
+    }
+
+    /* Intercept ALL links on the page (nav, table file links, etc.) */
+    document.querySelectorAll("a").forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        if (!isGenerating) return;  /* let normal navigation happen */
+        e.preventDefault();
+        guardedNavigate(link.href);
+      });
+    });
+
+    /* Browser back/forward/tab-close guard (skip for the form's own POST) */
+    window.addEventListener("beforeunload", function (e) {
+      if (!isGenerating || formSubmitting) return;
+      e.preventDefault();
+      e.returnValue = "";  /* triggers native browser dialog */
+    });
+  })();
+</script>
+
 <div class="grid">
   <div class="card">
-    <h2>Your Jira / Xray Tests Created</h2>
-    {% if xray_rows %}
+    <h2>List of Tests Imported to Jira</h2>
+    <div class="scroll-table">
     <table>
-      <thead><tr><th>SL</th><th>Jira Id</th><th>Test Id</th><th>Description</th><th>Created</th></tr></thead>
-      <tbody>
-        {% for r in xray_rows %}
+      <thead><tr><th>Sl No</th><th>Site Name</th><th>Total no of Jira's</th><th>Total Tests in Jira</th></tr></thead>
+      <tbody id="imported-site-summary-body">
+        {% for r in xray_site_rows %}
           <tr>
-            <td>{{ r["SL_No"] }}</td>
-            <td>{{ r["Jira_id"] }}</td>
-            <td>{{ r["Test_id"] }}</td>
-            <td>{{ r["Test_Description"] }}</td>
-            <td>{{ r["Created_date"] }}</td>
+            <td>{{ loop.index }}</td>
+            <td>{{ r["Site_Name"] }}</td>
+            <td><a href="/imported-tests/site?site={{ r['Site_Name'] | urlencode }}">{{ r["Jira_Count"] }}</a></td>
+            <td>{{ r["Test_Count"] }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
-    {% else %}<p class="muted">No Xray tests created yet.</p>{% endif %}
+    </div>
   </div>
 
   <div class="card">
-    <h2>Your Manual Test Excel Exports</h2>
+    <h2>List of Tests Exported to Excel</h2>
     {% if export_rows %}
+    <div class="scroll-table">
     <table>
       <thead><tr><th>Sl</th><th>Jira Id</th><th>File</th><th>Count</th><th>Created</th></tr></thead>
       <tbody>
         {% for r in export_rows %}
           <tr>
-            <td>{{ r["Sl_No"] }}</td>
+            <td>{{ loop.index }}</td>
             <td>{{ r["Jira_id"] }}</td>
-            <td>{{ r["Test_name"] }}</td>
+            <td><a href="{{ url_for('main.export_detail', sl_no=r['Sl_No']) }}">{{ r["Test_name"] }}</a></td>
             <td>{{ r["NoOfTest_Created"] }}</td>
-            <td>{{ r["Created_date"] }}</td>
+            <td>{{ r["Created_date"] | dt }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% else %}<p class="muted">No manual test exports yet.</p>{% endif %}
   </div>
 </div>
+
+<script>
+  (function () {
+    var tbody = document.getElementById("imported-site-summary-body");
+    if (!tbody) return;
+
+    var detailBase = "/imported-tests/site";
+    var summaryApi = "/api/imported-tests/site-summary";
+
+    function renderRows(rows) {
+      if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">No imported tests found.</td></tr>';
+        return;
+      }
+
+      var html = "";
+      rows.forEach(function (r, idx) {
+        var site = String(r.Site_Name || "Unknown");
+        var jiraCount = String(r.Jira_Count || 0);
+        var testCount = String(r.Test_Count || 0);
+        var href = detailBase + "?site=" + encodeURIComponent(site);
+        html += "<tr>" +
+          "<td>" + (idx + 1) + "</td>" +
+          "<td>" + site + "</td>" +
+          "<td><a href=\"" + href + "\">" + jiraCount + "</a></td>" +
+          "<td>" + testCount + "</td>" +
+          "</tr>";
+      });
+      tbody.innerHTML = html;
+    }
+
+    fetch(summaryApi, { credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("Failed summary API");
+        return res.json();
+      })
+      .then(function (data) {
+        renderRows((data && data.rows) || []);
+      })
+      .catch(function () {
+        // Keep server-rendered fallback rows if API fails.
+      });
+  })();
+</script>
 {% endblock %}

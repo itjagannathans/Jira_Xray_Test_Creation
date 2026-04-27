@@ -2,27 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}Jira Xray Test Generator{% endblock %}</title>
+  <title>{% block title %}HCL Jira Xray Test Generator{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <a href="{{ url_for('main.root') }}">Jira Xray Test Generator</a>
+      <a href="{{ url_for('main.root') }}">AI Based Test Case Designer</a>
     </div>
     <nav>
       {% if current_user.is_authenticated %}
-        <span class="user">Hello, <strong>{{ current_user.username }}</strong>{% if current_user.is_admin %} (Admin){% endif %}</span>
+        <span class="user">Hello, <strong>{{ current_user.full_name or current_user.username }}</strong>{% if current_user.is_admin %} (Admin){% endif %}</span>
+        {% set ep = request.endpoint %}
+        {% set admin_enduser_blocked = current_user.is_admin and (current_user.username|lower) == 'admin' %}
         {% if current_user.is_admin %}
-          <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-          <a href="{{ url_for('admin.users') }}">Users</a>
-          <a href="{{ url_for('admin.xray_history') }}">Xray History</a>
-          <a href="{{ url_for('admin.export_history') }}">Export History</a>
+          <a href="{{ url_for('admin.dashboard') }}" class="{% if ep == 'admin.dashboard' %}active{% endif %}">Dashboard</a>
+          <a href="{{ url_for('admin.users') }}" class="{% if ep and ep.startswith('admin.users') %}active{% endif %}">Users</a>
+          <a href="{{ url_for('admin.xray_history') }}" class="{% if ep == 'admin.xray_history' %}active{% endif %}">Xray History</a>
+          <a href="{{ url_for('admin.export_history') }}" class="{% if ep in ['admin.export_history', 'admin.export_history_detail'] %}active{% endif %}">Export History</a>
+          {% if not admin_enduser_blocked %}
+            <a href="{{ url_for('main.landing') }}" class="{% if ep in ['main.landing', 'main.generate', 'main.confirm', 'main.export_detail'] %}active{% endif %}">Home</a>
+            <a href="{{ url_for('main.profile') }}" class="{% if ep == 'main.profile' %}active{% endif %}">Profile</a>
+          {% endif %}
         {% else %}
-          <a href="{{ url_for('main.landing') }}">Home</a>
-          <a href="{{ url_for('main.profile') }}">Profile</a>
+          <a href="{{ url_for('main.landing') }}" class="{% if ep in ['main.landing', 'main.generate', 'main.confirm', 'main.export_detail'] %}active{% endif %}">Home</a>
+          <a href="{{ url_for('main.profile') }}" class="{% if ep == 'main.profile' %}active{% endif %}">Profile</a>
         {% endif %}
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
+        <a href="{{ url_for('auth.logout') }}"
+           onclick="return confirm('Are you sure you want to logout?');">Logout</a>
       {% endif %}
     </nav>
   </header>

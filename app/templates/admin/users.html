@@ -5,16 +5,16 @@
   <h1>Users</h1>
   <table>
     <thead>
-      <tr><th>Id</th><th>Username</th><th>Admin</th><th>Active</th><th>Created</th><th>Actions</th></tr>
+      <tr><th>Id</th><th>Name</th><th>Admin</th><th>Active</th><th>Created</th><th>Actions</th></tr>
     </thead>
     <tbody>
       {% for u in users %}
       <tr>
         <td>{{ u["id"] }}</td>
-        <td>{{ u["username"] }}</td>
+        <td title="{{ u['username'] }}">{{ u["full_name"] or u["username"] }}</td>
         <td>{{ "Yes" if u["is_admin"] else "No" }}</td>
         <td>{{ "Active" if u["is_active"] else "Deactivated" }}</td>
-        <td>{{ u["created_date"] }}</td>
+        <td>{{ u["created_date"] | dt }}</td>
         <td class="actions">
           {% if u["is_admin"] %}
             <span class="muted">—</span>
@@ -33,5 +33,8 @@
       {% endfor %}
     </tbody>
   </table>
+  <div class="row" style="justify-content:flex-end">
+    <a class="button" href="{{ url_for('admin.dashboard') }}">Back</a>
+  </div>
 </div>
 {% endblock %}

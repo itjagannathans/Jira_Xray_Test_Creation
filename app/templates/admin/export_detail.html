@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Export Details{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Manual Test Export Details</h1>
+  <p class="muted">
+    <strong>Jira Id:</strong> {{ export["Jira_id"] }} &nbsp;|&nbsp;
+    <strong>File:</strong> {{ export["Test_name"] }} &nbsp;|&nbsp;
+    <strong>Tests:</strong> {{ export["NoOfTest_Created"] }} &nbsp;|&nbsp;
+    <strong>Created By:</strong>
+    <span title="{{ export['Created_By'] }}">
+      {{ name_map.get(export['Created_By'], export['Created_By']) }}
+    </span> &nbsp;|&nbsp;
+    <strong>Created:</strong> {{ export["Created_date"] | dt }}
+  </p>
+
+  {% if error %}
+    <p class="warn">{{ error }}</p>
+  {% elif rows %}
+    <div class="scroll-table" style="max-height:520px">
+      <table>
+        <thead>
+          <tr>
+            {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            {% for c in r %}
+              <td><div class="clamp-2" title="{{ c }}">{{ c }}</div></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">No data found in the file.</p>
+  {% endif %}
+
+  <div class="row" style="justify-content:flex-end">
+    <a class="button" href="{{ url_for('admin.export_history') }}">Back</a>
+  </div>
+</div>
+{% endblock %}

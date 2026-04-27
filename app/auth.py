@@ -68,23 +68,28 @@ def signup():
         return redirect(url_for("main.landing"))
 
     if request.method == "POST":
+        full_name = (request.form.get("full_name") or "").strip()
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
         confirm = request.form.get("confirm_password") or ""
         jira_pat = (request.form.get("jira_pat") or "").strip() or None
 
+        if not full_name:
+            flash("Please enter your name.", "error")
+            return render_template("signup.html", full_name=full_name)
+
         err = _validate_email(username) or _validate_password(password)
         if err:
             flash(err, "error")
-            return render_template("signup.html", username=username)
+            return render_template("signup.html", full_name=full_name)
 
         if password != confirm:
             flash("Passwords do not match.", "error")
-            return render_template("signup.html", username=username)
+            return render_template("signup.html", full_name=full_name)
 
         if dbm.get_user_by_username(current_app.config["DATABASE"], username):
             flash("A user with that username already exists.", "error")
-            return render_template("signup.html", username=username)
+            return render_template("signup.html", full_name=full_name)
 
         dbm.create_user(
             current_app.config["DATABASE"],
@@ -92,11 +97,12 @@ def signup():
             password_hash=generate_password_hash(password),
             jira_pat=jira_pat,
             is_admin=False,
+            full_name=full_name,
         )
         flash("Account created. Please log in.", "success")
         return redirect(url_for("auth.login"))
 
-    return render_template("signup.html", username="")
+    return render_template("signup.html")
 
 
 @auth_bp.route("/logout")

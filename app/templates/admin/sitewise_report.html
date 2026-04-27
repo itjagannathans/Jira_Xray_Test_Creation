@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}SiteWise Report{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <h1 style="margin:0">SiteWise Report</h1>
+    <a class="button" href="{{ url_for('admin.dashboard') }}">Back</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Sl No</th>
+        <th>Site Name</th>
+        <th>Total no of Jira's</th>
+        <th>Total Tests in Jira</th>
+        <th>No of Jira Exported</th>
+        <th>No of Test Exported</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ r["Site_Name"] }}</td>
+        <td>{{ r["Jira_Count"] }}</td>
+        <td>{{ r["Test_Count"] }}</td>
+        <td>{{ r["Jira_Exported_Count"] }}</td>
+        <td>{{ r["Test_Exported_Count"] }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No site-wise data found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -3,39 +3,186 @@
 {% block content %}
 <div class="card">
   <h1>Generated Test Cases for {{ story_key }}</h1>
-  <p>Action: <strong>{% if action == 'excel' %}Generate Excel{% else %}Create Xray Tests in Jira{% endif %}</strong></p>
-
+  <div class="scroll-table" style="max-height:420px;">
   <table>
     <thead>
-      <tr><th>#</th><th>Title</th><th>Priority</th><th>Type</th><th>Steps</th></tr>
+      <tr><th>#</th><th>Title</th><th>Type</th><th>Steps</th></tr>
     </thead>
     <tbody>
       {% for tc in testcases %}
+        {% set step_lines = [] %}
+        {% for s in (tc.Steps or []) %}
+          {% set _ = step_lines.append(loop.index ~ '. ' ~ (s.Action or '') ~ (' -> ' ~ s.Expected if s.Expected else '')) %}
+        {% endfor %}
+        {% set steps_text = step_lines | join('\n') %}
+        {% set _raw_title = tc.Title %}
+        {% if _raw_title.startswith(story_key) %}
+          {% set _raw_title = _raw_title[story_key|length:].lstrip(' -_:') %}
+        {% endif %}
         <tr>
           <td>{{ loop.index }}</td>
-          <td>{{ tc.Title }}</td>
-          <td>{{ tc.Priority }}</td>
+          <td>{{ _raw_title }}</td>
           <td>{{ tc.Type }}</td>
-          <td>{{ (tc.Steps or []) | length }}</td>
+          <td><div class="clamp-2" title="{{ steps_text }}">{{ steps_text }}</div></td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
-  <form method="post" action="{{ url_for('main.confirm') }}" class="row">
-    <button type="submit" name="decision" value="yes" class="primary">Confirm</button>
-    <button type="submit" name="decision" value="cancel">Cancel</button>
-  </form>
-
-  <hr>
-  <details>
-    <summary>Regenerate with a custom prompt</summary>
-    <form method="post" action="{{ url_for('main.confirm') }}">
+  <details id="regenerate-details" style="margin-top:16px;">
+    <summary id="regen-toggle-label" style="cursor:pointer; color:#2563eb; font-weight:500;">&#9654; Click here to Regenerate with Custom Prompt</summary>
+    <form method="post" action="{{ url_for('main.confirm') }}" id="regenerate-form">
       <label>Custom prompt
-        <textarea name="custom_prompt" rows="6" required></textarea>
+        <textarea name="custom_prompt" rows="6" required id="regenerate-prompt"></textarea>
       </label>
-      <button type="submit" name="decision" value="regenerate" class="primary">Regenerate</button>
+      <div class="row">
+        <button type="submit" name="decision" value="regenerate" class="primary" id="regenerate-btn">Re-Build</button>
+        <button type="button" class="danger" id="regenerate-cancel-btn" style="display:none">Cancel</button>
+        <span id="regenerate-progress" class="muted" style="display:none">
+          <span class="spinner" aria-hidden="true"></span>
+          Test Cases is being regenerated...
+        </span>
+      </div>
     </form>
   </details>
+
+  <form method="post" action="{{ url_for('main.confirm') }}" class="row" id="confirm-actions-form" style="margin-top:16px;">
+    <button type="submit" name="decision" value="yes" class="primary" id="confirm-yes-btn">Confirm</button>
+    <button type="submit" name="decision" value="cancel" id="confirm-cancel-btn">Cancel</button>
+  </form>
 </div>
+
+<script>
+  (function () {
+    var regenForm = document.getElementById("regenerate-form");
+    var regenPrompt = document.getElementById("regenerate-prompt");
+    var regenBtn = document.getElementById("regenerate-btn");
+    var regenCancelBtn = document.getElementById("regenerate-cancel-btn");
+    var regenProgress = document.getElementById("regenerate-progress");
+    var regenDetails = document.getElementById("regenerate-details");
+
+    var confirmYesBtn = document.getElementById("confirm-yes-btn");
+    var confirmCancelBtn = document.getElementById("confirm-cancel-btn");
+
+    var isRegenerating = false;
+    var allowUnload = false;
+    var regenController = null;
+
+    function setRegenerateState(active) {
+      isRegenerating = active;
+      if (regenDetails && active) {
+        regenDetails.setAttribute("open", "open");
+      }
+      if (regenBtn) {
+        regenBtn.disabled = active;
+        regenBtn.textContent = active ? "Re-Building..." : "Re-Build";
+      }
+      if (regenCancelBtn) {
+        regenCancelBtn.style.display = active ? "inline-block" : "none";
+      }
+      if (regenProgress) {
+        regenProgress.style.display = active ? "inline-flex" : "none";
+      }
+      if (regenPrompt) {
+        regenPrompt.disabled = active;
+      }
+      if (confirmYesBtn) {
+        confirmYesBtn.disabled = active;
+      }
+      if (confirmCancelBtn) {
+        confirmCancelBtn.disabled = active;
+      }
+    }
+
+    function cancelRegeneration() {
+      if (regenController) {
+        regenController.abort();
+        regenController = null;
+      }
+      setRegenerateState(false);
+    }
+
+    function guardedNavigate(href) {
+      if (!isRegenerating) {
+        allowUnload = true;
+        window.location.href = href;
+        return;
+      }
+      if (confirm("Do you want to cancel the process")) {
+        cancelRegeneration();
+        allowUnload = true;
+        window.location.href = href;
+      }
+    }
+
+    if (regenForm) {
+      regenForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (isRegenerating) return;
+        if (regenPrompt && !regenPrompt.value.trim()) {
+          regenPrompt.reportValidity();
+          return;
+        }
+
+        try {
+          var formData = new FormData(regenForm);
+          if (!formData.get("decision")) {
+            formData.append("decision", "regenerate");
+          }
+
+          setRegenerateState(true);
+          regenController = new AbortController();
+
+          var res = await fetch(regenForm.action, {
+            method: "POST",
+            body: formData,
+            signal: regenController.signal,
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+          });
+
+          if (!res.ok) {
+            throw new Error("Server returned status " + res.status);
+          }
+
+          var html = await res.text();
+          allowUnload = true;
+          document.open();
+          document.write(html);
+          document.close();
+        } catch (err) {
+          if (err && err.name === "AbortError") {
+            return;
+          }
+          setRegenerateState(false);
+          alert("Regeneration failed. Please try again.");
+        }
+      });
+    }
+
+    if (regenCancelBtn) {
+      regenCancelBtn.addEventListener("click", function () {
+        if (!isRegenerating) return;
+        if (confirm("Do you want to cancel the process")) {
+          cancelRegeneration();
+        }
+      });
+    }
+
+    document.querySelectorAll("a").forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        if (!isRegenerating) return;
+        e.preventDefault();
+        guardedNavigate(link.href);
+      });
+    });
+
+    window.addEventListener("beforeunload", function (e) {
+      if (!isRegenerating || allowUnload) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+  })();
+</script>
 {% endblock %}

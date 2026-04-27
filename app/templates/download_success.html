@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Downloading Excel{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Preparing Download</h1>
+  <p class="muted">Your file <strong>{{ filename }}</strong> is being downloaded.</p>
+  <p class="muted">Please wait...</p>
+</div>
+
+<script>
+  (function () {
+    var downloadUrl = "{{ download_url }}";
+    var filename = "{{ filename }}";
+    var homeUrl = "{{ home_url }}";
+
+    fetch(downloadUrl, { credentials: "same-origin" })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error("Download failed");
+        }
+        return resp.blob();
+      })
+      .then(function (blob) {
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+        alert("The Excel is downloaded Successfully");
+        window.location.href = homeUrl;
+      })
+      .catch(function () {
+        alert("Excel download failed. Please try again.");
+        window.location.href = homeUrl;
+      });
+  })();
+</script>
+{% endblock %}

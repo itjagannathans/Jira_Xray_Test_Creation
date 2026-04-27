@@ -14,6 +14,7 @@ class User:
     is_active_flag: bool
     jira_pat: Optional[str]
     created_date: str
+    full_name: Optional[str] = None
 
     # Flask-Login interface
     @property
@@ -33,6 +34,7 @@ class User:
 
     @classmethod
     def from_row(cls, row) -> "User":
+        keys = row.keys() if hasattr(row, "keys") else []
         return cls(
             id=row["id"],
             username=row["username"],
@@ -41,4 +43,5 @@ class User:
             is_active_flag=bool(row["is_active"]),
             jira_pat=row["jira_pat"],
             created_date=row["created_date"],
+            full_name=row["full_name"] if "full_name" in keys else None,
         )

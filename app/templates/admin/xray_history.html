@@ -1,8 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Xray History{% endblock %}
+{% block title %}Jira Tests Report{% endblock %}
 {% block content %}
 <div class="card">
-  <h1>Xray Test Creation History (All Users)</h1>
+  <div class="row" style="justify-content:space-between; align-items:center">
+    <h1 style="margin:0">Jira Tests Report (All Users)</h1>
+    <a class="button" href="{{ url_for('admin.dashboard') }}">Back</a>
+  </div>
   <table>
     <thead>
       <tr><th>SL</th><th>Jira Id</th><th>Test Id</th><th>Description</th><th>Steps</th><th>Expected</th><th>Created By</th><th>Created Date</th></tr>
@@ -13,11 +16,11 @@
         <td>{{ r["SL_No"] }}</td>
         <td>{{ r["Jira_id"] }}</td>
         <td>{{ r["Test_id"] }}</td>
-        <td>{{ r["Test_Description"] }}</td>
-        <td><pre class="cell-pre">{{ r["Test_Steps"] }}</pre></td>
-        <td><pre class="cell-pre">{{ r["Test_expected"] }}</pre></td>
-        <td>{{ r["Created_By"] }}</td>
-        <td>{{ r["Created_date"] }}</td>
+        <td><div class="clamp-2" title="{{ r['Test_Description'] }}">{{ r["Test_Description"] }}</div></td>
+        <td><div class="clamp-2" title="{{ r['Test_Steps'] }}">{{ r["Test_Steps"] }}</div></td>
+        <td><div class="clamp-2" title="{{ r['Test_expected'] }}">{{ r["Test_expected"] }}</div></td>
+        <td title="{{ r['Created_By'] }}">{{ name_map.get(r['Created_By'], r['Created_By']) }}</td>
+        <td>{{ r["Created_date"] | dt }}</td>
       </tr>
       {% endfor %}
     </tbody>

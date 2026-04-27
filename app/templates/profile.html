@@ -4,11 +4,42 @@
 <div class="card narrow">
   <h1>My Profile</h1>
   <p><strong>Username:</strong> {{ current_user.username }}</p>
-  <form method="post" action="{{ url_for('main.profile') }}">
+
+  {% set has_pat = current_user.jira_pat and current_user.jira_pat|length > 0 %}
+
+  <form method="post" action="{{ url_for('main.profile') }}" id="profile-form">
     <label>Jira Personal Access Token (PAT)
-      <input type="password" name="jira_pat" value="{{ current_user.jira_pat or '' }}" autocomplete="off">
+      <input type="password" name="jira_pat" id="jira-pat"
+             value="{{ current_user.jira_pat or '' }}"
+             autocomplete="off"
+             {% if has_pat %}disabled{% endif %}>
     </label>
-    <button type="submit" class="primary">Save</button>
+
+    <div class="row">
+      {% if has_pat %}
+        <button type="button" class="primary" id="modify-btn">Modify</button>
+        <button type="submit" class="primary" id="save-btn" style="display:none">Save</button>
+      {% else %}
+        <button type="submit" class="primary">Save</button>
+      {% endif %}
+      <a class="button" href="javascript:history.back()">Back</a>
+    </div>
   </form>
 </div>
+
+<script>
+  (function () {
+    var modifyBtn = document.getElementById("modify-btn");
+    var saveBtn = document.getElementById("save-btn");
+    var input = document.getElementById("jira-pat");
+    if (!modifyBtn || !saveBtn || !input) return;
+
+    modifyBtn.addEventListener("click", function () {
+      input.disabled = false;
+      input.focus();
+      modifyBtn.style.display = "none";
+      saveBtn.style.display = "inline-block";
+    });
+  })();
+</script>
 {% endblock %}

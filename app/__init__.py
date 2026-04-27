@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import os
+import logging
 from flask import Flask
+from flask import got_request_exception
 from flask_login import LoginManager
 
-from .db import init_db, get_user_by_id
+from .db import init_db, get_user_by_id, list_users
 from .models import User
 
 login_manager = LoginManager()
@@ -22,7 +24,36 @@ def create_app() -> Flask:
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app_data.db"),
     )
 
+    # Persist runtime exceptions to a local file to simplify 500 diagnostics.
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "flask_errors.log")
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setLevel(logging.ERROR)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+    ))
+    app.logger.addHandler(file_handler)
+
+    def _log_exception(sender, exception, **extra):
+        sender.logger.exception("Unhandled exception", exc_info=exception)
+
+    got_request_exception.connect(_log_exception, app)
+
     init_db(app.config["DATABASE"])
+
+    @app.template_filter("dt")
+    def _format_dt(value):
+        if not value:
+            return ""
+        return str(value).replace("T", " ")
+
+    @app.context_processor
+    def _inject_name_map():
+        try:
+            users = list_users(app.config["DATABASE"])
+            mapping = {u["username"]: (u["full_name"] or u["username"]) for u in users}
+        except Exception:
+            mapping = {}
+        return {"name_map": mapping}
 
     login_manager.init_app(app)
 
