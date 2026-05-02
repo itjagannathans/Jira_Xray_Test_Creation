@@ -1,0 +1,189 @@
+2026-04-27 23:19:29,765 ERROR [app.main] Excel export failed
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\main.py", line 289, in confirm
+    out_file = xs.export_testcases_to_excel(story_key, testcases, out_dir)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 604, in export_testcases_to_excel
+    ws.append([
+    ~~~~~~~~~^^
+        serial_no,
+        ^^^^^^^^^^
+    ...<5 lines>...
+        "\n".join(steps_text_lines),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ])
+    ^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\worksheet\worksheet.py", line 673, in append
+    cell = Cell(self, row=row_idx, column=col_idx, value=content)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 119, in __init__
+    self.value = value
+    ^^^^^^^^^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 218, in value
+    self._bind_value(value)
+    ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 187, in _bind_value
+    raise ValueError("Cannot convert {0!r} to Excel".format(value))
+ValueError: Cannot convert {'Environment': 'SIT1', 'Username': 'valid_igt_user', 'Password': 'valid_password', 'PlayerID': 'any player with a winning wager'} to Excel
+2026-04-28 10:35:54,335 ERROR [app.main] Generation failed
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connection.py", line 796, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+        sock=sock,
+    ...<14 lines>...
+        assert_fingerprint=self.assert_fingerprint,
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connection.py", line 975, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+        sock=sock,
+    ...<8 lines>...
+        tls_in_tls=tls_in_tls,
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\util\ssl_.py", line 483, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\util\ssl_.py", line 527, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sock=sock,
+        ^^^^^^^^^^
+    ...<5 lines>...
+        session=session
+        ^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Program Files\Python314\Lib\ssl.py", line 1076, in _create
+    self.do_handshake()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python314\Lib\ssl.py", line 1372, in do_handshake
+    self._sslobj.do_handshake()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+ssl.SSLEOFError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
+    raise new_e
+urllib3.exceptions.SSLError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\requests\adapters.py", line 645, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...<13 lines>...
+        **response_kw,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...<13 lines>...
+        **response_kw,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 871, in urlopen
+    return self.urlopen(
+           ~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...<13 lines>...
+        **response_kw,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\urllib3\util\retry.py", line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='jira.g2-networks.net', port=443): Max retries exceeded with url: /rest/api/2/issue/ILREP-891?fields=summary%2Cdescription%2Clabels%2Cpriority%2Cissuetype (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 83, in _request
+    return _http_session().request(
+           ~~~~~~~~~~~~~~~~~~~~~~~^
+        method=method,
+        ^^^^^^^^^^^^^^
+    ...<5 lines>...
+        verify=_verify_setting(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\requests\sessions.py", line 706, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\requests\adapters.py", line 676, in send
+    raise SSLError(e, request=request)
+requests.exceptions.SSLError: HTTPSConnectionPool(host='jira.g2-networks.net', port=443): Max retries exceeded with url: /rest/api/2/issue/ILREP-891?fields=summary%2Cdescription%2Clabels%2Cpriority%2Cissuetype (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\main.py", line 215, in generate
+    story_context = xs.build_story_context(current_user.jira_pat, story_key)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 375, in build_story_context
+    issue = jira_get(
+        jira_pat,
+        f"/rest/api/2/issue/{story_key}",
+        {"fields": "summary,description,labels,priority,issuetype"},
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 103, in jira_get
+    r = _request("GET", jira_pat, path, params=params)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 93, in _request
+    raise RuntimeError(
+    ...<3 lines>...
+    ) from e
+RuntimeError: Jira SSL handshake failed. If your environment uses corporate TLS inspection, set JIRA_CA_BUNDLE to your trusted PEM bundle (preferred), or set JIRA_VERIFY_SSL=false only for local testing.
+2026-04-28 10:39:10,644 ERROR [app.main] Excel export failed
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\main.py", line 289, in confirm
+    out_file = xs.export_testcases_to_excel(story_key, testcases, out_dir)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 604, in export_testcases_to_excel
+    ws = wb.active
+        ^^^^^^^^^^
+    ...<7 lines>...
+            if a and e:
+    
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\worksheet\worksheet.py", line 673, in append
+    cell = Cell(self, row=row_idx, column=col_idx, value=content)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 119, in __init__
+    self.value = value
+    ^^^^^^^^^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 218, in value
+    self._bind_value(value)
+    ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 187, in _bind_value
+    raise ValueError("Cannot convert {0!r} to Excel".format(value))
+ValueError: Cannot convert {'Email': 'testuser_premium@test.com', 'ConfirmEmail': 'testuser_premium@test.com', 'Password': 'Test@1234', 'ConfirmPassword': 'Test@1234', 'SecurityQuestion': "What is your pet's name?", 'SecurityAnswer': 'Buddy', 'FirstName': 'John', 'LastName': 'Doe', 'DOB': '01/01/1990', 'StreetAddress1': '123 Main St', 'City': 'Trenton', 'State': 'NJ', 'ZipCode': '08608', 'SSN4': '1234', 'PrimaryPhone': '6095550101', 'MobileNumber': '6095550202'} to Excel

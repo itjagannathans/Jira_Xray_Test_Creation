@@ -18,7 +18,7 @@
         {% if current_user.is_admin %}
           <a href="{{ url_for('admin.dashboard') }}" class="{% if ep == 'admin.dashboard' %}active{% endif %}">Dashboard</a>
           <a href="{{ url_for('admin.users') }}" class="{% if ep and ep.startswith('admin.users') %}active{% endif %}">Users</a>
-          <a href="{{ url_for('admin.xray_history') }}" class="{% if ep == 'admin.xray_history' %}active{% endif %}">Xray History</a>
+          <a href="{{ url_for('admin.xray_history') }}" class="{% if ep == 'admin.xray_history' %}active{% endif %}">Imported Test</a>
           <a href="{{ url_for('admin.export_history') }}" class="{% if ep in ['admin.export_history', 'admin.export_history_detail'] %}active{% endif %}">Export History</a>
           {% if not admin_enduser_blocked %}
             <a href="{{ url_for('main.landing') }}" class="{% if ep in ['main.landing', 'main.generate', 'main.confirm', 'main.export_detail'] %}active{% endif %}">Home</a>

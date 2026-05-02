@@ -586,6 +586,20 @@ def create_xray_test(
 # -------------------------
 
 def export_testcases_to_excel(story_key: str, testcases: list, out_dir: str) -> str:
+    def _cell_text(value) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (int, float, bool)):
+            return str(value)
+        if isinstance(value, (dict, list, tuple, set)):
+            try:
+                return json.dumps(value, ensure_ascii=True)
+            except Exception:
+                return str(value)
+        return str(value)
+
     wb = Workbook()
     ws = wb.active
     ws.title = "TestCases"
@@ -593,8 +607,8 @@ def export_testcases_to_excel(story_key: str, testcases: list, out_dir: str) -> 
     for serial_no, tc in enumerate(testcases, start=1):
         steps_text_lines = []
         for i, s in enumerate(tc.get("Steps", []) or [], start=1):
-            a = (s.get("Action") or "").strip()
-            e = (s.get("Expected") or "").strip()
+            a = _cell_text(s.get("Action")).strip()
+            e = _cell_text(s.get("Expected")).strip()
             if a and e:
                 steps_text_lines.append(f"{i}. {a} -> {e}")
             elif a:
@@ -603,11 +617,11 @@ def export_testcases_to_excel(story_key: str, testcases: list, out_dir: str) -> 
                 steps_text_lines.append(f"{i}. Expected: {e}")
         ws.append([
             serial_no,
-            tc.get("Title", ""),
-            tc.get("Preconditions", ""),
-            tc.get("TestData", ""),
-            tc.get("Priority", ""),
-            tc.get("Type", ""),
+            _cell_text(tc.get("Title", "")),
+            _cell_text(tc.get("Preconditions", "")),
+            _cell_text(tc.get("TestData", "")),
+            _cell_text(tc.get("Priority", "")),
+            _cell_text(tc.get("Type", "")),
             "\n".join(steps_text_lines),
         ])
     os.makedirs(out_dir, exist_ok=True)

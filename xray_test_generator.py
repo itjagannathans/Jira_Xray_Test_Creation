@@ -617,6 +617,20 @@ def create_xray_test_per_case(
 # -------------------------
 
 def export_to_excel(story_key: str, testcases: list):
+    def _cell_text(value) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (int, float, bool)):
+            return str(value)
+        if isinstance(value, (dict, list, tuple, set)):
+            try:
+                return json.dumps(value, ensure_ascii=True)
+            except Exception:
+                return str(value)
+        return str(value)
+
     wb = Workbook()
     ws = wb.active
     ws.title = "TestCases"
@@ -625,17 +639,17 @@ def export_to_excel(story_key: str, testcases: list):
     ws.append(["Serial Number", "Title", "Preconditions", "TestData", "Priority", "Type", "Steps"])
 
     for serial_no, tc in enumerate(testcases, start=1):
-        title = tc.get("Title", "")
-        pre = tc.get("Preconditions", "")
-        pri = tc.get("Priority", "")
-        typ = tc.get("Type", "")
-        td = tc.get("TestData", "")
+        title = _cell_text(tc.get("Title", ""))
+        pre = _cell_text(tc.get("Preconditions", ""))
+        pri = _cell_text(tc.get("Priority", ""))
+        typ = _cell_text(tc.get("Type", ""))
+        td = _cell_text(tc.get("TestData", ""))
         steps = tc.get("Steps", []) or []
 
         step_lines = []
         for i, s in enumerate(steps, start=1):
-            action = (s.get("Action") or "").strip()
-            expected = (s.get("Expected") or "").strip()
+            action = _cell_text(s.get("Action")).strip()
+            expected = _cell_text(s.get("Expected")).strip()
             if action and expected:
                 step_lines.append(f"{i}. {action} -> {expected}")
             elif action:
