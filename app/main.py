@@ -1,6 +1,7 @@
 """Main user-facing blueprint: landing page, generation, profile."""
 from __future__ import annotations
 
+import hmac
 import io
 import json
 import logging
@@ -18,6 +19,22 @@ from . import xray_service as xs
 
 main_bp = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
+
+
+def _require_agent_token() -> tuple[bool, str]:
+    """Validate X-Agent-Token header against AGENT_API_TOKEN env var."""
+    configured = (os.environ.get("AGENT_API_TOKEN") or "").strip()
+    if not configured:
+        return False, "AGENT_API_TOKEN is not configured on the server."
+
+    provided = (request.headers.get("X-Agent-Token") or "").strip()
+    if not provided:
+        return False, "Missing X-Agent-Token header."
+
+    if not hmac.compare_digest(provided, configured):
+        return False, "Invalid agent token."
+
+    return True, ""
 
 
 def _is_admin_without_enduser_access() -> bool:
@@ -86,6 +103,122 @@ def api_imported_tests_site_summary():
 
     summary_rows = _build_site_summary(rows)
     return jsonify({"rows": summary_rows})
+
+
+@main_bp.route("/api/agent/health", methods=["GET"])
+def api_agent_health():
+    ok, msg = _require_agent_token()
+    if not ok:
+        return jsonify({"ok": False, "error": msg}), 401
+    return jsonify({"ok": True, "service": "jira-test-generator"})
+
+
+@main_bp.route("/api/agent/generate", methods=["POST"])
+def api_agent_generate():
+    """Machine-callable endpoint for agents (no browser login required)."""
+    ok, msg = _require_agent_token()
+    if not ok:
+        return jsonify({"ok": False, "error": msg}), 401
+
+    payload = request.get_json(silent=True) or {}
+    story_key = (payload.get("story_key") or "").strip()
+    jira_pat = (payload.get("jira_pat") or "").strip()
+    action = (payload.get("action") or "preview").strip().lower()
+    custom_prompt = (payload.get("custom_prompt") or "").strip()
+    created_by = (payload.get("created_by") or "agent").strip() or "agent"
+    include_testcases = bool(payload.get("include_testcases", False))
+
+    if not story_key:
+        return jsonify({"ok": False, "error": "story_key is required."}), 400
+    if not jira_pat:
+        return jsonify({"ok": False, "error": "jira_pat is required."}), 400
+    if action not in ("preview", "excel", "jira"):
+        return jsonify({"ok": False, "error": "action must be one of: preview, excel, jira."}), 400
+
+    try:
+        story_context = xs.build_story_context(jira_pat, story_key)
+        prompt = custom_prompt or xs.DEFAULT_PROMPT
+        testcases = xs.generate_testcases(prompt, story_context)
+    except Exception as e:
+        logger.exception("Agent generation failed")
+        return jsonify({"ok": False, "error": f"Generation failed: {e}"}), 500
+
+    db_path = current_app.config["DATABASE"]
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "exports")
+
+    response = {
+        "ok": True,
+        "story_key": story_key,
+        "action": action,
+        "testcase_count": len(testcases),
+    }
+    if include_testcases or action == "preview":
+        response["testcases"] = testcases
+
+    if action == "preview":
+        return jsonify(response)
+
+    if action == "excel":
+        try:
+            out_file = xs.export_testcases_to_excel(story_key, testcases, out_dir)
+            export_id = dbm.insert_export(
+                db_path,
+                jira_id=story_key,
+                test_name=os.path.basename(out_file),
+                count=len(testcases),
+                created_by=created_by,
+            )
+            response["export_id"] = export_id
+            response["excel_filename"] = os.path.basename(out_file)
+            response["excel_path"] = out_file
+            return jsonify(response)
+        except Exception as e:
+            logger.exception("Agent excel export failed")
+            return jsonify({"ok": False, "error": f"Excel export failed: {e}"}), 500
+
+    try:
+        issuetype_name = xs.detect_test_issuetype_name(jira_pat)
+        steps_field_id = xs.detect_steps_field_id(jira_pat)
+        tt_field_id, tt_payload = xs.detect_test_type_field(jira_pat)
+    except Exception as e:
+        logger.exception("Agent field detection failed")
+        return jsonify({"ok": False, "error": f"Field detection failed: {e}"}), 500
+
+    project_key = story_key.split("-")[0]
+    created = []
+    errors = []
+    for tc in testcases:
+        try:
+            test_key = xs.create_xray_test(
+                jira_pat,
+                story_key=story_key,
+                project_key=project_key,
+                issuetype_name=issuetype_name,
+                steps_field_id=steps_field_id,
+                test_type_field_id=tt_field_id,
+                test_type_payload=tt_payload,
+                tc=tc,
+            )
+            xs.link_test_to_story(jira_pat, test_key, story_key)
+            steps_text, expected_text = xs.steps_as_text(tc)
+            dbm.insert_xray_test(
+                db_path,
+                jira_id=story_key,
+                test_id=test_key,
+                description=xs.build_description(story_key, tc),
+                steps=steps_text,
+                expected=expected_text,
+                created_by=created_by,
+            )
+            created.append(test_key)
+        except Exception as e:
+            logger.exception("Agent failed creating test for %s", tc.get("Title"))
+            errors.append(f"{tc.get('Title', '?')}: {e}")
+
+    response["created"] = created
+    response["errors"] = errors
+    response["created_count"] = len(created)
+    return jsonify(response)
 
 
 @main_bp.route("/imported-tests/site")
