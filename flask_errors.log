@@ -187,3 +187,19 @@ Traceback (most recent call last):
   File "C:\Users\jkk63072\Projects\Jira_Test_Generator\.venv\Lib\site-packages\openpyxl\cell\cell.py", line 187, in _bind_value
     raise ValueError("Cannot convert {0!r} to Excel".format(value))
 ValueError: Cannot convert {'Email': 'testuser_premium@test.com', 'ConfirmEmail': 'testuser_premium@test.com', 'Password': 'Test@1234', 'ConfirmPassword': 'Test@1234', 'SecurityQuestion': "What is your pet's name?", 'SecurityAnswer': 'Buddy', 'FirstName': 'John', 'LastName': 'Doe', 'DOB': '01/01/1990', 'StreetAddress1': '123 Main St', 'City': 'Trenton', 'State': 'NJ', 'ZipCode': '08608', 'SSN4': '1234', 'PrimaryPhone': '6095550101', 'MobileNumber': '6095550202'} to Excel
+2026-05-29 16:56:41,569 ERROR [app.main] Generation failed
+Traceback (most recent call last):
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\main.py", line 348, in generate
+    story_context = xs.build_story_context(current_user.jira_pat, story_key)
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 375, in build_story_context
+    issue = jira_get(
+        jira_pat,
+        f"/rest/api/2/issue/{story_key}",
+        {"fields": "summary,description,labels,priority,issuetype"},
+    )
+  File "C:\Users\jkk63072\Projects\Jira_Test_Generator\app\xray_service.py", line 104, in jira_get
+    r.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\jkk63072\AppData\Roaming\Python\Python314\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error:  for url: https://jira.g2-networks.net/rest/api/2/issue/Story%20-%20Created%20by%20Jira%20Software%20-%20do%20not%20edit%20or%20delete.%20Issue%20type%20for%20a%20user%20story.%20NWUW-1555?fields=summary%2Cdescription%2Clabels%2Cpriority%2Cissuetype
